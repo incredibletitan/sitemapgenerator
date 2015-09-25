@@ -1,4 +1,5 @@
 <?php
+namespace libs;
 
 class LinkProcessor
 {
@@ -10,7 +11,6 @@ class LinkProcessor
 
     public function __construct($filePath)
     {
-        $this->filterArray = array('.jpg', 'mailto:', 'skype:', '.doc', '.docx', '.rar', '.zip', '.pdf');
         $this->parsedLinks = array();
 
         //Initializing SimpleHtmlDom
@@ -24,17 +24,27 @@ class LinkProcessor
         $this->curl->setTimeout(30);
 
         //Initializing XML writer
-        $this->xmlWriter = new XMLWriter();
+        $this->xmlWriter = new \XMLWriter();
         $this->xmlWriter->openURI($filePath);
         $this->xmlWriter->startDocument('1.0', 'UTF-8');
         $this->xmlWriter->setIndentString(str_repeat(' ', 3));
         $this->xmlWriter->setIndent(true);
     }
 
+    public function getFilters()
+    {
+        return $this->filterArray;
+    }
+
+    public function setFilter(array $filter)
+    {
+        $this->filterArray = $filter;
+    }
+
     private function isLinkInFilter($link)
     {
         foreach ($this->filterArray as $filter) {
-            if (strpos(strtolower($link), $filter) !== false) {
+            if (preg_match('/' . $filter . '/', $link)) {
                 return true;
             }
         }
@@ -71,7 +81,6 @@ class LinkProcessor
 
     public function getLinks($link, $depth, $maxDepth = 3)
     {
-
         if ($depth <= $maxDepth) {
             //Clear HTML DOM object 'cause when we use recursion we can get memory leak
             $this->htmlDom->clear();
@@ -97,8 +106,8 @@ class LinkProcessor
 
             foreach ($this->htmlDom->find('a') as $element) {
                 $foundLink = $element->href;
-                mailto:
-                //Ignore root links && skype links & other links
+
+                //Ignore root and links in filter
                 if ($foundLink === '/' || $this->isLinkInFilter($foundLink)) {
                     continue;
                 }
@@ -120,7 +129,6 @@ class LinkProcessor
                         && ($parsedUrl['host'] !== $parsedSourceLink['host']))
                     || (!isset($parsedUrl['host']) || empty($parsedUrl['host']))
                     && (!isset($parsedUrl['path']) || empty($parsedUrl['path']))) {
-
                     continue;
                 } else {
                     if (!isset($parsedUrl['host']) && !empty($parsedUrl['path'])) {
@@ -132,7 +140,6 @@ class LinkProcessor
 
                 // Check if we've already parsed link
                 if (in_array($resultUrl, $this->parsedLinks)) {
-
                     continue;
                 }
 
