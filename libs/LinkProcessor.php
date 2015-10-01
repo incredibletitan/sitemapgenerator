@@ -1,6 +1,8 @@
 <?php
 namespace libs;
 
+use models\LinkModel;
+
 class LinkProcessor
 {
     private $curl;
@@ -8,8 +10,11 @@ class LinkProcessor
     private $parsedLinks;
     private $xmlWriter;
     private $filterArray;
+    private $baseUrl;
+    private $primaryUrlId;
+    private $linkExists;
 
-    public function __construct($filePath)
+    public function __construct($filePath, $primaryUrl, $baseUrl = null)
     {
         $this->parsedLinks = array();
 
@@ -21,7 +26,7 @@ class LinkProcessor
         $this->curl->useDefaultUserAgent();
         $this->curl->followLocation();
         $this->curl->ignoreSSL();
-        $this->curl->setTimeout(30);
+        $this->curl->setTimeout(120);
 
         //Initializing XML writer
         $this->xmlWriter = new \XMLWriter();
@@ -29,6 +34,27 @@ class LinkProcessor
         $this->xmlWriter->startDocument('1.0', 'UTF-8');
         $this->xmlWriter->setIndentString(str_repeat(' ', 3));
         $this->xmlWriter->setIndent(true);
+
+        $this->baseUrl = $baseUrl;
+        $this->primaryUrl = trim($primaryUrl);
+        $this->linkModel = new \models\LinkModel();
+        $oldParsedLinkId = $this->linkModel->checkPrimaryUrlAlreadyParsed($this->primaryUrl);
+
+        if ($oldParsedLinkId) {
+            $this->primaryUrlId = $oldParsedLinkId;
+
+            //Set flag true to indicate that link already exist in database
+            $this->linkExists = true;
+        } else {
+            $lastInsertedId = $this->linkModel->addPrimaryUrlToDB($this->primaryUrl);
+
+            if (!$lastInsertedId) {
+                throw new \Exception('No data were inserted');
+            }
+            $this->primaryUrlId = $lastInsertedId;
+            $this->linkExists = false;
+        }
+        $this->linkModel->addUrlToDB('test.com', $this->primaryUrlId);
     }
 
     public function getFilters()
@@ -41,9 +67,27 @@ class LinkProcessor
         $this->filterArray = $filter;
     }
 
-    private function isLinkInFilter($link)
+    private function isLinkContains($link)
     {
-        foreach ($this->filterArray as $filter) {
+        if (!isset($this->filterArray['contains']) || count($this->filterArray['excludes']) < 1) {
+            return true;
+        }
+
+        return $this->arrayContainsByRegex($link, $this->filterArray['contains']);
+    }
+
+    private function isLinkNotContains($link)
+    {
+        if (!isset($this->filterArray['excludes']) || count($this->filterArray['excludes']) < 1) {
+            return true;
+        }
+
+        return !$this->arrayContainsByRegex($link, $this->filterArray['excludes']);
+    }
+
+    private function arrayContainsByRegex($link, $filters)
+    {
+        foreach ($filters as $filter) {
             if (preg_match('/' . $filter . '/', $link)) {
                 return true;
             }
@@ -52,15 +96,15 @@ class LinkProcessor
         return false;
     }
 
-    public function generateSitemap($link, $maxDepth = 3)
+    public function generateSitemap($maxDepth = 3)
     {
         $this->xmlWriter->startElementNS(null, 'urlset', 'http://www.sitemaps.org/schemas/sitemap/0.9');
 
         //Write source url to sitemap
         $this->xmlWriter->startElement('url');
-        $this->xmlWriter->writeElement("loc", $link);
+        $this->xmlWriter->writeElement("loc", $this->primaryUrl);
         $this->xmlWriter->endElement();
-        $this->getLinks($link, 0, $maxDepth);
+        $this->getLinks($this->primaryUrl, 0, $maxDepth);
         $this->xmlWriter->endElement();
 
         if (count($this->parsedLinks) > 0) {
@@ -79,7 +123,7 @@ class LinkProcessor
         return true;
     }
 
-    public function getLinks($link, $depth, $maxDepth = 3)
+    public function getLinks($link, $depth, $maxDepth = 5)
     {
         if ($depth <= $maxDepth) {
             //Clear HTML DOM object 'cause when we use recursion we can get memory leak
@@ -107,8 +151,19 @@ class LinkProcessor
             foreach ($this->htmlDom->find('a') as $element) {
                 $foundLink = $element->href;
 
-                //Ignore root and links in filter
-                if ($foundLink === '/' || $this->isLinkInFilter($foundLink)) {
+                if (null !==  $this->baseUrl &&
+                    isset($foundLink[0]) && $foundLink[0] == '/' && preg_match('/\/\S*\//', $foundLink)) {
+                    $baseLength = strlen($this->baseUrl);
+
+                    if ($this->baseUrl[$baseLength - 1] == '/') {
+                        $resultBaseUrl = substr($this->baseUrl, 0, $baseLength - 1);
+                    } else {
+                        $resultBaseUrl = $this->baseUrl;
+                    }
+                    $foundLink = $resultBaseUrl . $foundLink;
+                }
+
+                if ($foundLink === '/' || !$this->isLinkContains($foundLink) || !$this->isLinkNotContains($foundLink)) {
                     continue;
                 }
 
@@ -125,21 +180,14 @@ class LinkProcessor
                 }
                 $parsedUrl = parse_url($foundLink);
 
-                if ((isset($parsedUrl['host']) && !empty($parsedUrl['host'])
-                        && ($parsedUrl['host'] !== $parsedSourceLink['host']))
-                    || (!isset($parsedUrl['host']) || empty($parsedUrl['host']))
-                    && (!isset($parsedUrl['path']) || empty($parsedUrl['path']))) {
-                    continue;
+                if (!isset($parsedUrl['host']) && !empty($parsedUrl['path'])) {
+                    $resultUrl = $parsedSourceLink['host'] . $parsedUrl['path'];
                 } else {
-                    if (!isset($parsedUrl['host']) && !empty($parsedUrl['path'])) {
-                        $resultUrl = $parsedSourceLink['host'] . $parsedUrl['path'];
-                    } else {
-                        $resultUrl = $foundLink;
-                    }
+                    $resultUrl = $foundLink;
                 }
 
                 // Check if we've already parsed link
-                if (in_array($resultUrl, $this->parsedLinks)) {
+                if ($this->isLinkProcessed($resultUrl)) {
                     continue;
                 }
 
@@ -153,8 +201,54 @@ class LinkProcessor
                 $this->xmlWriter->startElement('url');
                 $this->xmlWriter->writeElement("loc", $urlForSitemap);
                 $this->xmlWriter->endElement();
-                $this->getLinks($resultUrl, $depth + 1);
+                $this->getLinks($resultUrl, $depth + 1, $maxDepth);
             }
         }
+    }
+
+    private function checkLinksEqual($url1, $url2)
+    {
+        $normalizedUrl1 = $this->normalizeUrl($url1);
+        $normalizedUrl2 = $this->normalizeUrl($url2);
+
+        return $normalizedUrl1 == $normalizedUrl2;
+    }
+
+    private function normalizeUrl($url)
+    {
+        $processedUrl = parse_url($url);
+
+        if (isset($processedUrl['scheme'])
+            && isset($processedUrl['host'])
+            && isset($processedUrl['path'])) {
+            if (strpos($processedUrl['host'], 'www.') === false) {
+                $processedUrl['host'] = 'www.' . $processedUrl['host'];
+            }
+            $pathLength = strlen($processedUrl['path']);
+
+            if ($pathLength > 0 && $processedUrl['path'][$pathLength - 1] == '/') {
+                $processedUrl['path'] = substr($processedUrl['path'], 0, $pathLength - 1);
+            }
+
+            return $processedUrl['scheme'] . '://' . $processedUrl['host'] . $processedUrl['path'];
+        }
+
+        return $url;
+    }
+
+
+    private function isLinkProcessed($link)
+    {
+        if (count($this->parsedLinks) < 1) {
+            return false;
+        }
+
+        foreach ($this->parsedLinks as $parsedLink) {
+            if ($this->checkLinksEqual($link, $parsedLink)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

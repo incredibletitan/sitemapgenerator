@@ -1,9 +1,15 @@
 <?php
 
 return array(
-    '\/es\/',
-    '\/de\/',
-    '\/pl\/',
-    '\/ru\/',
-    '\/blog\/'
+    'contains' => array(
+        'motocms\.com\/'
+    ),
+    'excludes' => array(
+        '\/es\/',
+        '\/pl\/',
+        '\/de\/',
+        '\/ru\/',
+        '\/blog\/',
+        '\/page\/'
+    )
 );

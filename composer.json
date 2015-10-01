@@ -3,6 +3,9 @@
     "phpunit/phpunit": "*"
   },
   "autoload": {
-    "psr-4": { "libs\\": "libs/" }
+    "psr-4": {
+      "libs\\": "libs/",
+      "models\\": "models/"
+    }
   }
 }

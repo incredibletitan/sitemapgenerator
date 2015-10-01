@@ -2,9 +2,9 @@
 
 return array(
     'contains' => array(
+        'motocms\.com\/blog\/'
     ),
     'excludes' => array(
-//        '\/page\/',
-        '\/search\/'
+        '\/wp\-content\/'
     )
 );

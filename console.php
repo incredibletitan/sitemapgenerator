@@ -27,14 +27,13 @@ if ($argumentsCount > 3 && $argv[2] == '--rule') {
 
 //Check if custom settings specified and then merge them
 if (isset($customFilter)) {
-    $resultFilter = array_merge($customFilter, $basicFilter);
+    $resultFilter = array_merge_recursive($customFilter, $basicFilter);
 } else {
     $resultFilter = $basicFilter;
 }
 
 $randName = \libs\RandomHelper::generateString() . '.xml';
 $fileName = XML_DIRECTORY_PATH . $randName;
-$linkProcessor = new \libs\LinkProcessor($fileName);
+$linkProcessor = new \libs\LinkProcessor($fileName, $url, 'http://www.motocms.com/');
 $linkProcessor->setFilter($resultFilter);
-
-$linkProcessor->generateSitemap($url, 20);
+$linkProcessor->generateSitemap(1);

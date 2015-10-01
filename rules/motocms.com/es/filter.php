@@ -1,5 +1,12 @@
 <?php
 
 return array(
-    'motocms\.com\/[^es]*'
+    'contains' => array(
+        '\/es\/'
+    ),
+    'excludes' => array(
+        '\/page\/',
+        '\/blog\/',
+    )
+
 );

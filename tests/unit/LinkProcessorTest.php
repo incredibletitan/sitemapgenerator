@@ -13,15 +13,59 @@ class LinkProcessorTest extends \PHPUnit_Framework_TestCase
         $this->linkProcessor = new \libs\LinkProcessor($testUrl);
     }
 
-    public function testIsLinkInFilter()
+    public function testIsLinkContains()
     {
-        $filterArray = array('motocms\.com\/[^es|pl|ru|de]');
+        $filterArray = array(
+            'contains' => array(
+                '\/es\/'
+            ),
+            'excludes' => array(
+                '\/pl\/'
+            )
+        );
+
         $this->linkProcessor->setFilter($filterArray);
-        $method = $this->getPrivateMethod('\libs\LinkProcessor', 'isLinkInFilter');
+        $method = $this->getPrivateMethod('\libs\LinkProcessor', 'isLinkContains');
 
         $result = $method->invokeArgs(
             $this->linkProcessor,
-            array('http://www.motocms.com/website-templates/motocms-html-template/54920.html')
+            array('http://motocms.com/es/faq/')
+        );
+
+        $this->assertTrue($result);
+    }
+
+    public function testIsLinkNotContains()
+    {
+        $filterArray = array(
+            'contains' => array(
+                '\/es\/'
+            ),
+            'excludes' => array(
+                '\/pl\/'
+            )
+        );
+
+        $this->linkProcessor->setFilter($filterArray);
+        $method = $this->getPrivateMethod('\libs\LinkProcessor', 'isLinkNotContains');
+
+        $result = $method->invokeArgs(
+            $this->linkProcessor,
+            array('http://motocms.com/es/faq/')
+        );
+
+        $this->assertTrue($result);
+    }
+
+    public function testCheckLinksEqual()
+    {
+        $method = $this->getPrivateMethod('\libs\LinkProcessor', 'checkLinksEqual');
+        $url1 = 'http://www.motocms.com/es/privacy';
+        $url2 = 'http://motocms.com/es/privacy/';
+
+        $result = $method->invokeArgs(
+            $this->linkProcessor,
+            array($url1, $url2)
         );
 
         $this->assertTrue($result);
