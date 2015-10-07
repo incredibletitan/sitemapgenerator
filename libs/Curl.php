@@ -60,6 +60,16 @@ class Curl
         return $result;
     }
 
+    public function getEffectiveUrl()
+    {
+        return curl_getinfo($this->curl, CURLINFO_EFFECTIVE_URL);
+    }
+
+    public function getHttpCode()
+    {
+        return curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+    }
+
     public function setTimeout($timeout)
     {
         curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);

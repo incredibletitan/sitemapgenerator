@@ -1,14 +1,4 @@
 <?php
-$db = new SQLite3();
-$test = 'testy';
-$statement = $db->prepare("INSERT INTO `primary_links`('name') VALUES(:name) ");
-$statement->bindValue(':name', $test);
-$statement->execute();
-
-echo $db->lastErrorMsg();
-
-
-exit;
 require_once __DIR__ . '/vendor/autoload.php';
 
 include 'views/sitemap-form.php';

@@ -2,11 +2,12 @@
 
 return array(
     'contains' => array(
-        '\/es\/'
+        'motocms\.com'
     ),
     'excludes' => array(
-        '\/page\/',
-        '\/blog\/',
-        '\/demo\/',
+        '\/qr\/',
+        'translate\.motocms\.com'
     )
+
+
 );

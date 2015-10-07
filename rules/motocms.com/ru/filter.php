@@ -2,7 +2,7 @@
 
 return array(
     'contains' => array(
-        '\/es\/'
+        '\/ru\/'
     ),
     'excludes' => array(
         '\/page\/',

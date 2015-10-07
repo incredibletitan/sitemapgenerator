@@ -4,7 +4,10 @@ return array(
     'contains' => array(
     ),
     'excludes' => array(
-//        '\/page\/',
-        '\/search\/'
+        '\/search\/',
+        '\S*\?\S*',
+        'affiliates\.motocms\.com',
+        'cart\/add',
+        '\/rms\/'
     )
 );
