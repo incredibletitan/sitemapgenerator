@@ -85,16 +85,11 @@ class LinkProcessor
         return false;
     }
 
-    public function generateSitemap($maxDepth = 3, $isImageSitemap = false)
+    public function generateSitemap($isImageSitemap = false)
     {
         $this->generatingStarted = true;
         $this->xmlWriter->startElementNS(null, 'urlset', 'http://www.sitemaps.org/schemas/sitemap/0.9');
-
-        //Write source url to sitemap
-        if (!$isImageSitemap) {
-            $this->writeUrlToSitemap($this->primaryUrl);
-        }
-        $this->getLinks($this->primaryUrl, 0, $maxDepth, $isImageSitemap);
+        $this->getLinks($this->primaryUrl, $isImageSitemap);
         $this->xmlWriter->endElement();
 
         if (count($this->parsedLinks) > 0) {
@@ -115,7 +110,6 @@ class LinkProcessor
 
     public function getLinks($link, $isImageSitemap = false)
     {
-
         //Clear HTML DOM object 'cause when we use recursion we can get memory leak
         $this->htmlDom->clear();
         $filteredUrl = $link;
@@ -142,6 +136,12 @@ class LinkProcessor
         }
         $effectiveUrl = $this->curl->getEffectiveUrl();
 
+        // Check if we've already parsed link
+        if ($this->isLinkProcessed($effectiveUrl, $this->parsedLinks)) {
+            return false;
+        }
+        $this->parsedLinks[] = $effectiveUrl;
+
         if (!$isImageSitemap) {
             $this->writeUrlToSitemap($effectiveUrl);
         }
@@ -158,7 +158,7 @@ class LinkProcessor
                 }
 
                 // Check if we've already parsed link
-                if ($this->isLinkProcessed($effectiveUrl, $this->parserImagesLinks)) {
+                if ($this->isLinkProcessed($sanitizedUrl, $this->parserImagesLinks)) {
                     continue;
                 }
                 $this->parserImagesLinks[] = $sanitizedUrl;
@@ -173,13 +173,6 @@ class LinkProcessor
             if (!$sanitizedUrl) {
                 continue;
             }
-
-            // Check if we've already parsed link
-            if ($this->isLinkProcessed($sanitizedUrl, $this->parsedLinks)) {
-                continue;
-            }
-
-            $this->parsedLinks[] = $sanitizedUrl;
             $this->getLinks($sanitizedUrl, $isImageSitemap);
         }
 

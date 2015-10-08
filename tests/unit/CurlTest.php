@@ -26,7 +26,7 @@ class CurlTest extends \PHPUnit_Framework_TestCase
 
     public function testGetHttpCode()
     {
-        //Set dummy not exist url
+        //Set dummy non exist url
         $this->curl->setUrl('http://www.motocms.com/dsdsds21211221212121');
         $this->curl->exec();
         $this->assertEquals($this->curl->getHttpCode(), 404);

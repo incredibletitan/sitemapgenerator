@@ -33,7 +33,7 @@ abstract class PHPUnit_Util_TestDox_ResultPrinter extends PHPUnit_Util_Printer i
     /**
      * @var array
      */
-    protected $tests = array();
+    protected $tests = [];
 
     /**
      * @var int
@@ -223,7 +223,7 @@ abstract class PHPUnit_Util_TestDox_ResultPrinter extends PHPUnit_Util_Printer i
             $this->startClass($class);
 
             $this->testClass = $class;
-            $this->tests     = array();
+            $this->tests     = [];
         }
 
         $prettified = false;

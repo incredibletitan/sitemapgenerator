@@ -18,7 +18,7 @@ class PHPUnit_Util_Blacklist
     /**
      * @var array
      */
-    public static $blacklistedClassNames = array(
+    public static $blacklistedClassNames = [
         'File_Iterator'                              => 1,
         'PHP_CodeCoverage'                           => 1,
         'PHP_Invoker'                                => 1,
@@ -40,8 +40,9 @@ class PHPUnit_Util_Blacklist
         'Composer\Autoload\ClassLoader'              => 1,
         'Doctrine\Instantiator\Instantiator'         => 1,
         'phpDocumentor\Reflection\DocBlock'          => 1,
-        'Prophecy\Prophet'                           => 1
-    );
+        'Prophecy\Prophet'                           => 1,
+        'DeepCopy\DeepCopy'                          => 1
+    ];
 
     /**
      * @var array
@@ -83,7 +84,7 @@ class PHPUnit_Util_Blacklist
     private function initialize()
     {
         if (self::$directories === null) {
-            self::$directories = array();
+            self::$directories = [];
 
             foreach (self::$blacklistedClassNames as $className => $parent) {
                 if (!class_exists($className)) {

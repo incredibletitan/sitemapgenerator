@@ -1,4 +1,7 @@
 {
+  "require": {
+    "phpmailer/phpmailer": "~5.2"
+  },
   "require-dev": {
     "phpunit/phpunit": "*"
   },
