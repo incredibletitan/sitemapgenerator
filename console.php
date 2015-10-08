@@ -61,29 +61,18 @@ if (isset($customFilter)) {
     $resultFilter = $basicFilter;
 }
 $linkProcessor = new \libs\LinkProcessor($url, 'http://www.motocms.com/');
-
-//$mail = new \PHPMailer;
-//$mail->setFrom('from@example.com', 'Mailer');
-//$mail->addAddress('joe@example.net', 'Joe User');
-//$mail->isHTML(true);                                  // Set email format to HTML
-//
-//$mail->Subject = 'Here is the subject';
-//$mail->Body    = 'This is the HTML message body <b>in bold!</b>';
-//$mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
-//
-//
-//if(!$mail->send()) {
-//    echo 'Message could not be sent.';
-//    echo 'Mailer Error: ' . $mail->ErrorInfo;
-//} else {
-//    echo 'Message has been sent';
-//}
-//
-//
-//exit;
-
+$linkProcessor->setMaxSessions(2); // limit 2 parallel sessions (by default 10)
+$linkProcessor->setMaxSize(10240); // limit 10 Kb per session (by default 10 Mb)
 $linkProcessor->setFilter($resultFilter);
+$linkProcessor->setCurlOptions(
+    array(
+        CURLOPT_HEADER => 0,
+        CURLOPT_RETURNTRANSFER => true,
+
+    )
+);
 $linkProcessor->generateSitemap($isImageSitemap);
+$linkProcessor->wait();
 $linkProcessor->save(RESULT_DIR . $resultFileName . '.xml');
 
 echo (time() - $timer) . ' seconds';

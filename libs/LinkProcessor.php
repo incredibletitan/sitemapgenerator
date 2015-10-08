@@ -1,7 +1,7 @@
 <?php
 namespace libs;
 
-class LinkProcessor
+class LinkProcessor extends MultiCurl
 {
     private $curl;
     private $htmlDom;
@@ -45,6 +45,50 @@ class LinkProcessor
         $this->generatingStarted = false;
         $this->primaryUrl = $primaryUrl;
     }
+
+    public function onLoad($url, $content, $info)
+    {
+
+        // Check if we've already parsed link
+        if ($this->isLinkProcessed($url, $this->parsedLinks)) {
+            return false;
+        }
+        $this->parsedLinks[] = $url;
+
+            $this->writeUrlToSitemap($url);
+
+        $this->htmlDom->load($content);
+
+//        if ($isImageSitemap) {
+//            foreach ($this->htmlDom->find('img') as $img) {
+//                $foundImg = $img->src;
+//                $sanitizedUrl = $this->sanitizeUrl($foundImg);
+//
+//                if (!$sanitizedUrl) {
+//                    continue;
+//                }
+//
+//                // Check if we've already parsed link
+//                if ($this->isLinkProcessed($sanitizedUrl, $this->parserImagesLinks)) {
+//                    continue;
+//                }
+//                $this->parserImagesLinks[] = $sanitizedUrl;
+//                $this->writeUrlToSitemap($sanitizedUrl);
+//            }
+//        }
+
+        foreach ($this->htmlDom->find('a') as $element) {
+            $foundLink = $element->href;
+            $sanitizedUrl = $this->sanitizeUrl($foundLink);
+
+            if (!$sanitizedUrl) {
+                continue;
+            }
+            $this->getLinks($sanitizedUrl);
+//            $this->getLinks($sanitizedUrl, $isImageSitemap);
+        }
+    }
+
 
     public function getFilters()
     {
@@ -112,69 +156,31 @@ class LinkProcessor
     {
         //Clear HTML DOM object 'cause when we use recursion we can get memory leak
         $this->htmlDom->clear();
-        $filteredUrl = $link;
+        $this->addUrl($link);
+//        $filteredUrl = $link;
+//
+//        //If link without protocol trying to add it and then validate
+//        if (!$this->hasHttpProtocol($filteredUrl)) {
+//            $filteredUrl = "http://" . $filteredUrl;
+//
+//            if (filter_var($filteredUrl, FILTER_VALIDATE_URL) === false) {
+//                return false;
+//            }
+//        }
+//        $this->curl->setUrl($filteredUrl);
+//        $rawHtml = $this->curl->exec();
+//        $httpCode = $this->curl->getHttpCode();
+//
+//        if ($httpCode == 404 || $httpCode == 503) {
+//            return false;
+//        }
+//
+//        //If curl has errors
+//        if ($rawHtml === false) {
+//            return false;
+//        }
+//        $effectiveUrl = $this->curl->getEffectiveUrl();
 
-        //If link without protocol trying to add it and then validate
-        if (!$this->hasHttpProtocol($filteredUrl)) {
-            $filteredUrl = "http://" . $filteredUrl;
-
-            if (filter_var($filteredUrl, FILTER_VALIDATE_URL) === false) {
-                return false;
-            }
-        }
-        $this->curl->setUrl($filteredUrl);
-        $rawHtml = $this->curl->exec();
-        $httpCode = $this->curl->getHttpCode();
-
-        if ($httpCode == 404 || $httpCode == 503) {
-            return false;
-        }
-
-        //If curl has errors
-        if ($rawHtml === false) {
-            return false;
-        }
-        $effectiveUrl = $this->curl->getEffectiveUrl();
-
-        // Check if we've already parsed link
-        if ($this->isLinkProcessed($effectiveUrl, $this->parsedLinks)) {
-            return false;
-        }
-        $this->parsedLinks[] = $effectiveUrl;
-
-        if (!$isImageSitemap) {
-            $this->writeUrlToSitemap($effectiveUrl);
-        }
-
-        $this->htmlDom->load($rawHtml);
-
-        if ($isImageSitemap) {
-            foreach ($this->htmlDom->find('img') as $img) {
-                $foundImg = $img->src;
-                $sanitizedUrl = $this->sanitizeUrl($foundImg);
-
-                if (!$sanitizedUrl) {
-                    continue;
-                }
-
-                // Check if we've already parsed link
-                if ($this->isLinkProcessed($sanitizedUrl, $this->parserImagesLinks)) {
-                    continue;
-                }
-                $this->parserImagesLinks[] = $sanitizedUrl;
-                $this->writeUrlToSitemap($sanitizedUrl);
-            }
-        }
-
-        foreach ($this->htmlDom->find('a') as $element) {
-            $foundLink = $element->href;
-            $sanitizedUrl = $this->sanitizeUrl($foundLink);
-
-            if (!$sanitizedUrl) {
-                continue;
-            }
-            $this->getLinks($sanitizedUrl, $isImageSitemap);
-        }
 
     }
 
