@@ -1,5 +1,5 @@
 <?php
-set_time_limit(-1);
+set_time_limit(20);
 ini_set("memory_limit", "256M");
 
 define('TEMP_DIR', dirname(__FILE__) . '/xml/');
