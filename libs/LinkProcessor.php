@@ -124,17 +124,17 @@ class LinkProcessor
         }
         $this->curl->setUrl($filteredUrl);
         $rawHtml = $this->curl->exec();
-//        $httpCode = $this->curl->getHttpCode();
-//
-//        if ($httpCode == 404 || $httpCode == 503) {
-//            return false;
-//        }
+        $httpCode = $this->curl->getHttpCode();
+
+        if ($httpCode == 404 || $httpCode == 503) {
+            return false;
+        }
 
         //If curl has errors
         if ($rawHtml === false) {
             return false;
         }
-        $effectiveUrl = $filteredUrl;
+        $effectiveUrl = $this->curl->getEffectiveUrl();
 
         // Check if we've already parsed link
         if ($this->isLinkProcessed($effectiveUrl, $this->parsedLinks)) {
